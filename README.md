@@ -4,6 +4,8 @@ MCP server that bridges iPad handwriting input with LLMs. Captures handwriting a
 
 ## Quick Start (Claude Desktop + iPad)
 
+**Prerequisites:** [Node.js](https://nodejs.org) (v18+) and [Claude Desktop](https://claude.ai/download)
+
 Add this to your `claude_desktop_config.json`:
 
 ```json
