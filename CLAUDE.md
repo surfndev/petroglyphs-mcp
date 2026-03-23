@@ -1,0 +1,73 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+Petroglyphs is an open-source iPad app that captures handwriting and sends it to any LLM via MCP (Model Context Protocol). It is a dedicated input device for AI — not a note-taking app or whiteboard.
+
+**Core loop:** Write on canvas → Pick a combo → Tap to cast → Clear → Repeat
+
+**Theme:** "Cave art meets AI" — earth tones, stone textures, tactile feel.
+
+## Architecture
+
+Three components connected over local Wi-Fi (no cloud):
+
+| Component | Tech | Role |
+|-----------|------|------|
+| iPad app | SwiftUI + PencilKit | Canvas + combo spinner |
+| MCP server | TypeScript + @modelcontextprotocol/sdk | Bridge between iPad and LLM |
+| LLM client | Claude Desktop, Cursor, etc. | Where AI responds |
+
+**Flow:** iPad captures PNG + combo config → HTTP POST to MCP server (port 3333) → MCP server exposes via resources/tools → LLM reads and responds.
+
+This repo is `petroglyphs-mcp`. The iPad app (`petroglyphs-app`) will be a separate repo.
+
+## Development
+
+```bash
+npm install          # install dependencies
+npm run build        # compile TypeScript → dist/
+npm run dev          # run with tsx (no build needed)
+npm start            # run compiled dist/index.js
+```
+
+Run with HTTP server: `npm run dev -- --port 3333`
+
+CLI flags: `--port 3333`, `--vault-path /path/to/vault`, `--export-path ~/Desktop`, `--max-history 50`
+
+## Key Concepts
+
+- **Combo**: A preset pairing a prompt template with the handwriting image. Has id, name, icon, prompt, optional `auto_action` (MCP tool to invoke), and color. Stored locally via UserDefaults/JSON.
+- **Cast**: Sending the canvas image + combo config to the MCP server. Triggered by tapping the active combo.
+- **Slate**: The canvas submission. MCP resources use `slate://` URI scheme (`slate://current`, `slate://current/combo`, `slate://history`).
+- **Spinner**: Scrollable combo selector on screen edge. Active combo is enlarged; tapping it casts. Long-press to edit.
+
+## MCP Server
+
+- **Distribution:** `npx -y petroglyphs-mcp --port 3333`
+- **Transport:** stdio (Claude Desktop/Cursor) + Streamable HTTP (iPad + remote clients)
+- **Storage:** In-memory only, lost on restart (intentional)
+- **Tools:** `get_handwriting`, `get_handwriting_history`, `save_to_obsidian`, `export_to_excalidraw`, `clear_history`
+- **HTTP endpoints:** `POST /api/submit`, `GET /api/health`
+- **CLI flags:** `--port`, `--vault-path`, `--export-path`, `--max-history`
+
+## iPad App
+
+- Swift 5.9+, SwiftUI, PencilKit, iOS 17.0+, landscape only (V1)
+- Two pages: Landing (settings/connection) and Canvas (drawing + spinner)
+- Clear gesture: palm-swipe >70% of canvas width, or three-finger swipe
+- Connection: manual IP:port entry, health check ping every 10s, queues up to 5 sends when disconnected
+
+## Design System
+
+- **Colors:** Limestone `#F5EDE3` background, sandstone `#E8D5C0` surfaces, ochre `#D4874D` accent, charcoal `#3D3530` text
+- **Canvas:** Always pure white `#FFFFFF`
+- **Typography:** Caveat (display/headings), SF Pro Rounded (UI/body)
+- **Texture:** Sandstone grain on backgrounds at 8-12% opacity, no texture on canvas
+
+## Spec Documents
+
+- `petroglyphs-spec-v1.md` — Full technical specification (architecture, API, integrations)
+- `petroglyphs-design-brief.md` — Visual design system and UI component specs
