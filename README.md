@@ -2,15 +2,9 @@
 
 MCP server that bridges iPad handwriting input with LLMs. Captures handwriting as PNG images and exposes them via [Model Context Protocol](https://modelcontextprotocol.io) tools and resources.
 
-## Quick Start
+## Quick Start (Claude Desktop + iPad)
 
-```bash
-npx -y petroglyphs-mcp --port 3333
-```
-
-## Setup with Claude Desktop + iPad
-
-Both the LLM client and iPad connect to the same MCP server. Add this to your `claude_desktop_config.json`:
+Add this to your `claude_desktop_config.json`:
 
 ```json
 {
@@ -23,7 +17,9 @@ Both the LLM client and iPad connect to the same MCP server. Add this to your `c
 }
 ```
 
-This runs both transports simultaneously — stdio for Claude Desktop and HTTP on port 3333 for the iPad.
+Restart Claude Desktop — it starts the MCP server automatically with both stdio (for Claude) and HTTP (for the iPad) on port 3333.
+
+> **Note:** Do not run `npx petroglyphs-mcp --port 3333` separately if Claude Desktop is already running — the port will conflict. Claude Desktop manages the server for you.
 
 ### Connect the iPad
 
@@ -50,7 +46,7 @@ If you just want stdio mode without HTTP:
 }
 ```
 
-### HTTP only (standalone)
+### HTTP only (standalone, without Claude Desktop)
 
 ```bash
 npx -y petroglyphs-mcp --port 3333
