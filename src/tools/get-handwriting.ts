@@ -1,13 +1,13 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { getLatest } from '../store.js';
+import { store } from '../store.js';
 
-export function register(server: McpServer): void {
+export function register(server: McpServer, sessionId: string): void {
   server.tool(
     'get_handwriting',
     'Returns the latest handwriting image (base64 PNG) with metadata',
     {},
     async () => {
-      const latest = getLatest();
+      const latest = store.getLatest(sessionId);
       if (!latest) {
         return {
           content: [{ type: 'text', text: 'No handwriting available. The slate is empty.' }],

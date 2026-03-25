@@ -3,9 +3,9 @@ import { join } from 'node:path';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { config } from '../config.js';
-import { getLatest } from '../store.js';
+import { store } from '../store.js';
 
-export function register(server: McpServer): void {
+export function register(server: McpServer, sessionId: string): void {
   server.tool(
     'save_to_obsidian',
     'Saves content as a markdown file to an Obsidian vault with YAML frontmatter. Optionally embeds the handwriting image.',
@@ -32,7 +32,7 @@ export function register(server: McpServer): void {
 
       const now = new Date();
       const dateStr = now.toISOString().split('T')[0];
-      const latest = getLatest();
+      const latest = store.getLatest(sessionId);
 
       // Build YAML frontmatter
       const frontmatter: Record<string, unknown> = {

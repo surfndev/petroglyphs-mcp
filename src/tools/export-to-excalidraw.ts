@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { config } from '../config.js';
-import { getLatest } from '../store.js';
+import { store } from '../store.js';
 
 interface ExcalidrawElement {
   id: string;
@@ -79,7 +79,7 @@ function strokesToExcalidraw(submission: import('../types.js').Submission): Exca
   });
 }
 
-export function register(server: McpServer): void {
+export function register(server: McpServer, sessionId: string): void {
   server.tool(
     'export_to_excalidraw',
     'Exports the latest handwriting strokes as an Excalidraw file (.excalidraw JSON)',
@@ -87,7 +87,7 @@ export function register(server: McpServer): void {
       filename: z.string().optional().describe('Output filename without extension (default: petroglyphs-{timestamp})'),
     },
     async ({ filename }) => {
-      const latest = getLatest();
+      const latest = store.getLatest(sessionId);
       if (!latest) {
         return {
           content: [{ type: 'text', text: 'No handwriting to export. The slate is empty.' }],

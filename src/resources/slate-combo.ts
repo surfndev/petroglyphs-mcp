@@ -1,13 +1,13 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { getLatest } from '../store.js';
+import { store } from '../store.js';
 
-export function register(server: McpServer): void {
+export function register(server: McpServer, sessionId: string): void {
   server.resource(
     'slate-current-combo',
     'slate://current/combo',
     { description: 'Combo configuration for the latest submission' },
     async () => {
-      const latest = getLatest();
+      const latest = store.getLatest(sessionId);
 
       const combo = latest?.combo ?? null;
       return {

@@ -1,14 +1,14 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { getHistory } from '../store.js';
+import { store } from '../store.js';
 
-export function register(server: McpServer): void {
+export function register(server: McpServer, sessionId: string): void {
   server.tool(
     'get_handwriting_history',
     'Returns the last N handwriting submissions with metadata',
     { limit: z.number().optional().describe('Number of submissions to return (default: all)') },
     async ({ limit }) => {
-      const history = getHistory(limit);
+      const history = store.getHistory(sessionId, limit);
 
       if (history.length === 0) {
         return {

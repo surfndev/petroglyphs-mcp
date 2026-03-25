@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer } from './server.js';
-import { addSubmission, getLatest, getCount } from './store.js';
+import { store, DEFAULT_SESSION } from './store.js';
 import type { Submission, Combo, StrokeMetadata } from './types.js';
 
 const sessions = new Map<string, StreamableHTTPServerTransport>();
@@ -20,20 +20,33 @@ export async function startHttp(port: number): Promise<void> {
     res.json({
       status: 'ok',
       version: '0.1.0',
-      submissions: getCount(),
+      submissions: store.getCount(DEFAULT_SESSION),
+      activeSessions: store.getActiveSessionCount(),
     });
   });
 
   app.post('/api/submit', (req, res) => {
-    const { image, strokeMetadata, combo } = req.body as {
+    const { image, strokeMetadata, combo, pairing_code } = req.body as {
       image?: string;
       strokeMetadata?: StrokeMetadata;
       combo?: Combo | null;
+      pairing_code?: string;
     };
 
     if (!image || !strokeMetadata) {
       res.status(400).json({ error: 'Missing required fields: image, strokeMetadata' });
       return;
+    }
+
+    // Resolve session from pairing code, fall back to local
+    let sessionId = DEFAULT_SESSION;
+    if (pairing_code) {
+      const resolved = store.resolveSession(pairing_code);
+      if (!resolved) {
+        res.status(400).json({ error: 'Invalid pairing code' });
+        return;
+      }
+      sessionId = resolved;
     }
 
     const submission: Submission = {
@@ -45,40 +58,42 @@ export async function startHttp(port: number): Promise<void> {
       combo: combo ?? null,
     };
 
-    addSubmission(submission);
+    store.addSubmission(sessionId, submission);
 
     res.json({ id: submission.id, status: 'received' });
-    console.error(`[petroglyphs] submission received: ${submission.id}`);
+    console.error(`[petroglyphs] submission received: ${submission.id} (session: ${sessionId === DEFAULT_SESSION ? 'local' : sessionId.slice(0, 8)})`);
   });
 
   // ── MCP Streamable HTTP ──
 
   app.post('/mcp', async (req, res) => {
-    const sessionId = req.headers['mcp-session-id'] as string | undefined;
+    const existingSessionId = req.headers['mcp-session-id'] as string | undefined;
 
-    if (sessionId && sessions.has(sessionId)) {
-      const transport = sessions.get(sessionId)!;
+    if (existingSessionId && sessions.has(existingSessionId)) {
+      const transport = sessions.get(existingSessionId)!;
       await transport.handleRequest(req, res, req.body);
       return;
     }
 
-    // New session — create transport and server
+    // New session — pre-generate ID so both transport and server share it
+    const sessionId = randomUUID();
+
     const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: () => randomUUID(),
+      sessionIdGenerator: () => sessionId,
     });
 
     transport.onclose = () => {
       const sid = transport.sessionId;
-      if (sid) sessions.delete(sid);
+      if (sid) {
+        sessions.delete(sid);
+        store.removeSession(sid);
+      }
     };
 
-    const server = createServer();
+    const server = createServer(sessionId);
     await server.connect(transport);
 
-    // After connect, the transport has a sessionId
-    if (transport.sessionId) {
-      sessions.set(transport.sessionId, transport);
-    }
+    sessions.set(sessionId, transport);
 
     await transport.handleRequest(req, res, req.body);
   });

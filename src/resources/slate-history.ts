@@ -1,13 +1,13 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { getHistory } from '../store.js';
+import { store } from '../store.js';
 
-export function register(server: McpServer): void {
+export function register(server: McpServer, sessionId: string): void {
   server.resource(
     'slate-history',
     'slate://history',
     { description: 'All handwriting submissions this session' },
     async () => {
-      const history = getHistory();
+      const history = store.getHistory(sessionId);
 
       const summary = history.map((sub) => ({
         id: sub.id,
