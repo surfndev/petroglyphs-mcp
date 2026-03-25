@@ -25,6 +25,20 @@ export async function startHttp(port: number): Promise<void> {
     });
   });
 
+  app.get('/api/validate-code', (req, res) => {
+    const code = (req.query['code'] as string | undefined)?.toUpperCase();
+    if (!code) {
+      res.status(400).json({ valid: false, error: 'Missing code' });
+      return;
+    }
+    const sessionId = store.resolveSession(code);
+    if (sessionId) {
+      res.json({ valid: true });
+    } else {
+      res.status(404).json({ valid: false, error: 'Invalid pairing code' });
+    }
+  });
+
   app.post('/api/submit', (req, res) => {
     const { image, strokeMetadata, combo, pairing_code } = req.body as {
       image?: string;
