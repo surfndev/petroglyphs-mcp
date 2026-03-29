@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Petroglyphs — A handwriting keyboard for AI</title>
+  <meta name="description" content="Turn your iPad into a handwriting input for any LLM. Draw with Apple Pencil, send to Claude, Cursor, and more via MCP.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --limestone: #F5EDE3;
+      --sandstone: #E8D5C0;
+      --clay: #C4956A;
+      --ochre: #D4874D;
+      --burnt-ochre: #B8652A;
+      --charcoal: #3D3530;
+      --deep-cave: #2A2320;
+      --moss: #7A9A6D;
+      --river-blue: #5B8FA8;
+      --rust: #A65D4E;
+      --slate: #8A8078;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      color: var(--charcoal);
+      background: var(--limestone);
+      line-height: 1.6;
+      position: relative;
+    }
+
+    /* Subtle grain texture */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      opacity: 0.06;
+      pointer-events: none;
+      z-index: 9999;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 256px 256px;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(245, 237, 227, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--sandstone);
+      padding: 0 2rem;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-brand {
+      font-family: 'Caveat', cursive;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--charcoal);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .nav-brand img {
+      height: 28px;
+      width: 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--slate);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--charcoal); }
+
+    /* ── Sections ── */
+    section { padding: 5rem 2rem; }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h2 {
+      font-family: 'Caveat', cursive;
+      font-size: 2.25rem;
+      font-weight: 700;
+      color: var(--deep-cave);
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 56px 2rem 0;
+    }
+
+    .hero-inner {
+      display: flex;
+      align-items: center;
+      gap: 4rem;
+      max-width: 1080px;
+      width: 100%;
+    }
+
+    .hero-text {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .hero-visual {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      justify-content: center;
+    }
+
+    .hero-device {
+      position: relative;
+      padding: 16px;
+      background: linear-gradient(145deg, #fff, var(--sandstone));
+      border-radius: 24px;
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.6) inset,
+        0 4px 12px rgba(61, 53, 48, 0.08),
+        0 12px 40px rgba(61, 53, 48, 0.12),
+        0 24px 60px rgba(61, 53, 48, 0.06);
+    }
+
+    .hero-device::before {
+      content: '';
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--clay);
+      opacity: 0.4;
+    }
+
+    .hero-logo {
+      width: 72px;
+      height: 72px;
+      margin-bottom: 1rem;
+      border-radius: 16px;
+    }
+
+    .hero h1 {
+      font-family: 'Caveat', cursive;
+      font-size: 3.5rem;
+      font-weight: 700;
+      color: var(--deep-cave);
+      line-height: 1.1;
+      margin-bottom: 0.75rem;
+    }
+
+    .hero .tagline {
+      font-size: 1.3rem;
+      color: var(--charcoal);
+      margin-bottom: 0.75rem;
+      font-weight: 500;
+    }
+
+    .hero .description {
+      font-size: 1.05rem;
+      color: var(--slate);
+      margin-bottom: 2rem;
+      max-width: 420px;
+      line-height: 1.6;
+    }
+
+    .hero-gif {
+      max-width: 460px;
+      width: 100%;
+      border-radius: 12px;
+      display: block;
+    }
+
+    .btn {
+      display: inline-block;
+      background: var(--ochre);
+      color: #fff;
+      border: none;
+      padding: 0.875rem 2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn:hover { background: var(--burnt-ochre); }
+    .btn:active { transform: scale(0.98); }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--ochre);
+      border: 2px solid var(--ochre);
+    }
+
+    .btn-secondary:hover {
+      background: var(--ochre);
+      color: #fff;
+    }
+
+    /* ── How it Works ── */
+    .how-it-works {
+      background: var(--sandstone);
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+
+    .card {
+      background: var(--limestone);
+      border: 1px solid var(--clay);
+      border-radius: 12px;
+      padding: 2rem 1.5rem;
+      text-align: center;
+    }
+
+    .card-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+      display: block;
+    }
+
+    .card h3 {
+      font-family: 'Caveat', cursive;
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--deep-cave);
+    }
+
+    .card p {
+      font-size: 0.9rem;
+      color: var(--slate);
+      line-height: 1.5;
+    }
+
+    .card-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--clay);
+      font-size: 1.5rem;
+      padding-top: 2rem;
+    }
+
+    /* ── Guide ── */
+    .guide-tabs {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-bottom: 2rem;
+    }
+
+    .guide-tab {
+      padding: 0.5rem 1.25rem;
+      border-radius: 20px;
+      border: 2px solid var(--clay);
+      background: transparent;
+      color: var(--charcoal);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .guide-tab.active {
+      background: var(--ochre);
+      border-color: var(--ochre);
+      color: #fff;
+    }
+
+    .guide-tab:hover:not(.active) {
+      border-color: var(--ochre);
+    }
+
+    .guide-content { display: none; }
+    .guide-content.active { display: block; }
+
+    .steps {
+      list-style: none;
+      counter-reset: step;
+    }
+
+    .steps li {
+      counter-increment: step;
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      margin-bottom: 1.5rem;
+    }
+
+    .steps li::before {
+      content: counter(step);
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--ochre);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .step-text h4 {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .step-text p {
+      font-size: 0.9rem;
+      color: var(--slate);
+    }
+
+    .step-text code {
+      background: var(--sandstone);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      color: var(--deep-cave);
+    }
+
+    .step-image {
+      max-width: 100%;
+      border-radius: 8px;
+      border: 1px solid var(--sandstone);
+      margin-top: 0.75rem;
+      box-shadow: 0 2px 8px rgba(61, 53, 48, 0.08);
+    }
+
+    /* ── Signup Form ── */
+    .signup {
+      background: var(--sandstone);
+    }
+
+    .form-card {
+      background: var(--limestone);
+      border: 1px solid var(--clay);
+      border-radius: 12px;
+      padding: 2.5rem;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .form-group input[type="email"],
+    .form-group textarea {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--clay);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      background: #fff;
+      color: var(--charcoal);
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--ochre);
+      box-shadow: 0 0 0 3px rgba(212, 135, 77, 0.15);
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    /* Radio pills */
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .pill-input { display: none; }
+
+    .pill-label {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      border: 1.5px solid var(--clay);
+      border-radius: 20px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--charcoal);
+      user-select: none;
+    }
+
+    .pill-label:hover {
+      border-color: var(--ochre);
+    }
+
+    .pill-input:checked + .pill-label {
+      background: var(--ochre);
+      border-color: var(--ochre);
+      color: #fff;
+    }
+
+    .form-submit {
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+
+    .form-error {
+      color: var(--rust);
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+      display: none;
+    }
+
+    /* Thank you state */
+    .thank-you {
+      display: none;
+      text-align: center;
+      padding: 2rem 0;
+    }
+
+    .thank-you h3 {
+      font-family: 'Caveat', cursive;
+      font-size: 2rem;
+      color: var(--deep-cave);
+      margin-bottom: 0.75rem;
+    }
+
+    .thank-you p {
+      color: var(--slate);
+      margin-bottom: 1.5rem;
+    }
+
+    /* ── Roadmap ── */
+    .roadmap-updated {
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--slate);
+      margin-bottom: 2rem;
+    }
+
+    .roadmap-list {
+      list-style: none;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .roadmap-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1.25rem 1.5rem;
+      background: var(--sandstone);
+      border-radius: 10px;
+      margin-bottom: 0.75rem;
+      border-left: 4px solid var(--ochre);
+    }
+
+    .roadmap-icon {
+      font-size: 1.25rem;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+
+    .roadmap-item h4 {
+      font-weight: 600;
+      color: var(--deep-cave);
+      margin-bottom: 0.25rem;
+    }
+
+    .roadmap-item p {
+      font-size: 0.9rem;
+      color: var(--slate);
+      line-height: 1.5;
+    }
+
+    /* ── Footer ── */
+    footer {
+      background: var(--deep-cave);
+      color: var(--sandstone);
+      text-align: center;
+      padding: 2rem;
+      font-size: 0.85rem;
+    }
+
+    footer a {
+      color: var(--clay);
+      text-decoration: none;
+    }
+
+    footer a:hover { text-decoration: underline; }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .hero-inner { flex-direction: column-reverse; gap: 2rem; text-align: center; }
+      .hero-text { align-items: center; display: flex; flex-direction: column; }
+      .hero-device { padding: 12px; }
+      .hero h1 { font-size: 2.75rem; }
+      .hero .tagline { font-size: 1.05rem; }
+      .hero .description { font-size: 0.95rem; text-align: center; }
+      .hero-gif { max-width: 100%; }
+      .cards { grid-template-columns: 1fr; }
+      .card-arrow { display: none; }
+      section { padding: 3.5rem 1.25rem; }
+      .form-card { padding: 1.5rem; }
+      .nav-links { gap: 1rem; }
+      .nav-links a { font-size: 0.8rem; }
+      .pills { gap: 0.4rem; }
+      .pill-label { font-size: 0.8rem; padding: 0.4rem 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav>
+    <a href="#" class="nav-brand">
+      <!-- Logo placeholder: replace src with actual logo -->
+      <span>Petroglyphs</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#how-it-works">How it Works</a></li>
+      <li><a href="#guide">Getting Started</a></li>
+      <li><a href="#signup">Start my Beta</a></li>
+      <li><a href="#roadmap">Roadmap</a></li>
+    </ul>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero" id="hero">
+    <div class="hero-inner">
+      <div class="hero-visual">
+        <div class="hero-device">
+          <img src="/assets/petro_hero.gif" class="hero-gif" alt="Petroglyphs demo — write on iPad, send to Claude">
+        </div>
+      </div>
+      <div class="hero-text">
+        <img src="/assets/petroglyphs-icon.png" class="hero-logo" alt="Petroglyphs">
+        <h1>Petroglyphs</h1>
+        <p class="tagline">Close the gap between your pencil and AI.</p>
+        <p class="description">Write your equations, kanji, or notes by hand — and send them straight to Claude. One tap, no friction.</p>
+        <a href="#signup" class="btn" id="cta-btn">Start my Beta</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it Works -->
+  <section class="how-it-works" id="how-it-works">
+    <div class="container">
+      <h2>How it Works</h2>
+      <div class="cards">
+        <div class="card">
+          <span class="card-icon">&#9997;&#65039;</span>
+          <h3>Write</h3>
+          <p>Draw naturally with Apple Pencil on your iPad. Math, diagrams, notes — anything you'd put on paper.</p>
+        </div>
+        <div class="card">
+          <span class="card-icon">&#9889;</span>
+          <h3>Send</h3>
+          <p>One tap sends your handwriting to any LLM. No screenshots, no switching apps.</p>
+        </div>
+        <div class="card">
+          <span class="card-icon">&#128279;</span>
+          <h3>Connect</h3>
+          <p>Works with Claude Desktop, Cursor, and any MCP-compatible client on your computer.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Getting Started Guide -->
+  <section id="guide">
+    <div class="container">
+      <h2>Getting Started</h2>
+
+      <div class="guide-tabs">
+        <button class="guide-tab active" data-tab="cloud">Cloud (Recommended)</button>
+        <button class="guide-tab" data-tab="local">Local Setup</button>
+      </div>
+
+      <div class="guide-content active" id="tab-cloud">
+        <ol class="steps">
+          <li>
+            <div class="step-text">
+              <h4>Sign up for the beta</h4>
+              <p>Fill out the form below to get the TestFlight link for the iPad app.</p>
+            </div>
+          </li>
+          <li>
+            <div class="step-text">
+              <h4>Download the iPad app</h4>
+              <p>Install from TestFlight and open Petroglyphs on your iPad.</p>
+            </div>
+          </li>
+          <li>
+            <div class="step-text">
+              <h4>Open your LLM client on computer, add the MCP server</h4>
+              <p>In Claude Desktop: <strong>Settings → Connectors → Add custom connector → Add</strong></p>
+              <p style="margin-top: 0.5rem;">Name: <code>Petroglyphs</code><br>Remote MCP server URL: <code>https://web-production-d8b49.up.railway.app/mcp</code></p>
+              <!-- Replace src with actual screenshot when ready -->
+              <img src="/assets/guide-add-connector.png" alt="Claude Desktop add connector screenshot" class="step-image" width="300px">
+            </div>
+          </li>
+          <li>
+            <div class="step-text">
+              <h4>Start a new chat and ask for a pairing key</h4>
+              <p>Type <code>get pairing code from petro</code> Claude will generate a pairing code to link your iPad to this session.</p>
+            </div>
+          </li>
+          <li>
+            <div class="step-text">
+              <h4>Insert the key in your iPad app</h4>
+               <p>In Petroglyphs app: <strong>Server → Cloud → Paring code → Test Connection → Save</strong></p>
+              <!-- Replace src with actual screenshot when ready -->
+              <img src="/assets/guide-insert-key.png" alt="iPad app pairing code screenshot" class="step-image" width="300px">
+            </div>
+          </li>
+          <li>
+            <div class="step-text">
+              <h4>Draw and send</h4>
+              <p>Write on the canvas and tap to send. Use these commands in your chat:</p>
+              <p style="margin-top: 0.5rem;"><code>get draw from petro</code> · <code>get pairing code from petro</code></p>
+            </div>
+          </li>
+        </ol>
+      </div>
+
+      <div class="guide-content" id="tab-local">
+        <ol class="steps">
+          <li>
+            <div class="step-text">
+              <h4>Install the MCP server</h4>
+              <p>Follow the instructions on <a href="https://github.com/surfndev/petroglyphs-mcp" target="_blank" rel="noopener" style="color: var(--ochre); font-weight: 500;">GitHub</a> to set up the server locally, or run <code>npx petroglyphs-mcp --port 3333</code>.</p>
+            </div>
+          </li>
+          <li>
+            <div class="step-text">
+              <h4>Configure your LLM client</h4>
+              <p>Point Claude Desktop or Cursor to the running MCP server.</p>
+            </div>
+          </li>
+          <li>
+            <div class="step-text">
+              <h4>Download the iPad app</h4>
+              <p>Install from TestFlight and enter your computer's local IP address in the app.</p>
+            </div>
+          </li>
+          <li>
+            <div class="step-text">
+              <h4>Draw and send</h4>
+              <p>Write on the canvas, tap to send, and see the AI respond on your computer. Both devices need to be on the same Wi-Fi.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- Signup Form -->
+  <section class="signup" id="signup">
+    <div class="container">
+      <h2>Start my Beta</h2>
+
+      <div class="form-card">
+        <form id="beta-form">
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="you@example.com" required>
+          </div>
+
+          <div class="form-group">
+            <label>What will you use it for?</label>
+            <div class="pills">
+              <input type="radio" name="useCase" value="Homework help" id="uc-homework" class="pill-input">
+              <label for="uc-homework" class="pill-label">Homework help</label>
+
+              <input type="radio" name="useCase" value="Math / Science" id="uc-math" class="pill-input">
+              <label for="uc-math" class="pill-label">Math / Science</label>
+
+              <input type="radio" name="useCase" value="Language learning" id="uc-language" class="pill-input">
+              <label for="uc-language" class="pill-label">Language learning</label>
+
+              <input type="radio" name="useCase" value="Note-taking" id="uc-notes" class="pill-input">
+              <label for="uc-notes" class="pill-label">Note-taking</label>
+
+              <input type="radio" name="useCase" value="Other" id="uc-other" class="pill-input">
+              <label for="uc-other" class="pill-label">Other</label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="workflow">Describe how you'd use Petroglyphs in your workflow</label>
+            <textarea id="workflow" name="workflow" placeholder="e.g. I'd write out math problems and have Claude check my steps..."></textarea>
+          </div>
+
+          <p class="form-error" id="form-error"></p>
+          <button type="submit" class="btn form-submit">Get Beta Access</button>
+        </form>
+
+        <div class="thank-you" id="thank-you">
+          <h3>You're in!</h3>
+          <p>Thanks for signing up. Here's your TestFlight link:</p>
+          <a href="https://testflight.apple.com/join/putm8fdP" class="btn" id="testflight-link" target="_blank" rel="noopener">Download on TestFlight</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Roadmap -->
+  <section id="roadmap">
+    <div class="container">
+      <h2>Working on it</h2>
+      <p class="roadmap-updated">Last updated: March 29, 2025</p>
+      <ul class="roadmap-list">
+        <li class="roadmap-item">
+          <span class="roadmap-icon">&#128300;</span>
+          <div>
+            <h4>Session memory</h4>
+            <p>Utilize Claude's new memory feature to persist context across sessions — so your AI remembers past work.</p>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <p>Petroglyphs &middot; Open source &middot; <a href="https://github.com/surfndev/petroglyphs-mcp" target="_blank" rel="noopener">GitHub</a> &middot; MIT License</p>
+  </footer>
+
+  <script>
+    (function () {
+      // Read ?ref= param
+      const ref = new URLSearchParams(window.location.search).get('ref') || '';
+
+      // Ping helper
+      function ping(signal, extra) {
+        const body = Object.assign({ signal: signal, ref: ref }, extra || {});
+        fetch('/api/ping', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        }).catch(function () {});
+      }
+
+      // Level 1: page visit
+      ping('visit');
+
+      // Level 2: CTA click
+      var ctaBtn = document.getElementById('cta-btn');
+      if (ctaBtn) {
+        ctaBtn.addEventListener('click', function () {
+          ping('interested');
+        });
+      }
+
+      // Guide tabs
+      document.querySelectorAll('.guide-tab').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          document.querySelectorAll('.guide-tab').forEach(function (t) { t.classList.remove('active'); });
+          document.querySelectorAll('.guide-content').forEach(function (c) { c.classList.remove('active'); });
+          tab.classList.add('active');
+          document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+        });
+      });
+
+      // Form submission
+      var form = document.getElementById('beta-form');
+      var formError = document.getElementById('form-error');
+      var thankYou = document.getElementById('thank-you');
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        formError.style.display = 'none';
+
+        var email = form.email.value.trim();
+        if (!email) {
+          formError.textContent = 'Please enter your email.';
+          formError.style.display = 'block';
+          return;
+        }
+
+        var useCaseEl = form.querySelector('input[name="useCase"]:checked');
+        var useCase = useCaseEl ? useCaseEl.value : '';
+        var workflow = form.workflow.value.trim();
+
+        var submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Sending...';
+
+        fetch('/api/beta-signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: email,
+            useCase: useCase,
+            workflow: workflow,
+            ref: ref,
+          }),
+        })
+          .then(function (res) { return res.json(); })
+          .then(function (data) {
+            if (data.success) {
+              form.style.display = 'none';
+              thankYou.style.display = 'block';
+            } else {
+              formError.textContent = data.error || 'Something went wrong. Please try again.';
+              formError.style.display = 'block';
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Get Beta Access';
+            }
+          })
+          .catch(function () {
+            formError.textContent = 'Could not connect. Please try again.';
+            formError.style.display = 'block';
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Get Beta Access';
+          });
+      });
+    })();
+  </script>
+</body>
+</html>

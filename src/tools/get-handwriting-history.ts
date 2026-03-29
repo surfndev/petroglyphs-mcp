@@ -5,7 +5,7 @@ import { store } from '../store.js';
 export function register(server: McpServer, sessionId: string): void {
   server.tool(
     'get_handwriting_history',
-    'Returns the last N handwriting submissions with metadata',
+    'Get drawing history from Petroglyphs (petro) iPad. Returns the last N handwriting submissions with metadata.',
     { limit: z.number().optional().describe('Number of submissions to return (default: all)') },
     async ({ limit }) => {
       const history = store.getHistory(sessionId, limit);

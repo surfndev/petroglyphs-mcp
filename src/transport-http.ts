@@ -1,4 +1,7 @@
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 import express from 'express';
 import cors from 'cors';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
@@ -6,13 +9,83 @@ import { createServer } from './server.js';
 import { store, DEFAULT_SESSION } from './store.js';
 import type { Submission, Combo, StrokeMetadata } from './types.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const landingHtml = readFileSync(join(__dirname, '..', 'src', 'landing.html'), 'utf-8');
+
 const sessions = new Map<string, StreamableHTTPServerTransport>();
+
+interface BetaSignup {
+  id: string;
+  ts: string;
+  email: string;
+  useCase: string;
+  workflow: string;
+  ref: string;
+}
+
+const betaSignups: BetaSignup[] = [];
 
 export async function startHttp(port: number): Promise<void> {
   const app = express();
 
   app.use(cors());
   app.use(express.json({ limit: '50mb' }));
+  app.use('/assets', express.static(join(__dirname, '..', 'public')));
+
+  // ── Landing page ──
+
+  app.get('/', (_req, res) => {
+    res.type('html').send(landingHtml);
+  });
+
+  // ── Engagement signals ──
+
+  app.post('/api/ping', (req, res) => {
+    const { signal, ref } = req.body as { signal?: string; ref?: string };
+    if (signal) {
+      console.log(JSON.stringify({ signal, ref: ref || '', ts: new Date().toISOString() }));
+    }
+    res.json({ ok: true });
+  });
+
+  // ── Beta signup ──
+
+  app.post('/api/beta-signup', (req, res) => {
+    const { email, useCase, workflow, ref } = req.body as {
+      email?: string;
+      useCase?: string;
+      workflow?: string;
+      ref?: string;
+    };
+
+    if (!email) {
+      res.status(400).json({ error: 'Email is required' });
+      return;
+    }
+
+    const signup: BetaSignup = {
+      id: randomUUID(),
+      ts: new Date().toISOString(),
+      email: email.trim().toLowerCase(),
+      useCase: (useCase ?? '').trim(),
+      workflow: (workflow ?? '').trim(),
+      ref: (ref ?? '').trim(),
+    };
+
+    betaSignups.push(signup);
+    console.log(JSON.stringify({ signal: 'signup', ...signup }));
+
+    res.json({ success: true });
+  });
+
+  app.get('/api/beta-signups', (req, res) => {
+    if (req.query['key'] !== process.env.ADMIN_KEY) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+    res.json({ count: betaSignups.length, signups: betaSignups });
+  });
 
   // ── iPad REST API ──
 
@@ -134,6 +207,7 @@ export async function startHttp(port: number): Promise<void> {
 
   app.listen(port, () => {
     console.error(`[petroglyphs] HTTP server listening on http://localhost:${port}`);
+    console.error(`[petroglyphs]   Landing:   GET  http://localhost:${port}/`);
     console.error(`[petroglyphs]   iPad API:  POST http://localhost:${port}/api/submit`);
     console.error(`[petroglyphs]   Health:    GET  http://localhost:${port}/api/health`);
     console.error(`[petroglyphs]   MCP HTTP:  POST http://localhost:${port}/mcp`);

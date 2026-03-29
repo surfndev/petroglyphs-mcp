@@ -4,7 +4,7 @@ import { store } from '../store.js';
 export function register(server: McpServer, sessionId: string): void {
   server.tool(
     'get_handwriting',
-    'Returns the latest handwriting image (base64 PNG) with metadata',
+    'Get the latest drawing from Petroglyphs (petro) iPad. Returns the handwriting image (base64 PNG) with stroke metadata.',
     {},
     async () => {
       const latest = store.getLatest(sessionId);
