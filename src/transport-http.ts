@@ -162,6 +162,12 @@ export async function startHttp(port: number): Promise<void> {
       return;
     }
 
+    // Stale session ID — tell client to re-initialize
+    if (existingSessionId) {
+      res.status(404).json({ error: 'Session not found. Please reconnect.' });
+      return;
+    }
+
     // New session — pre-generate ID so both transport and server share it
     const sessionId = randomUUID();
 
