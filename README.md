@@ -83,7 +83,7 @@ npx -y petroglyphs-mcp --port 3333
 
 ## iPad App
 
-The companion iPad app lives at [petroglyphs-app](https://github.com/surfndev/petroglyphs-app) (coming soon).
+The companion iPad app lives at [petroglyphs-app](https://github.com/surfndev/petroglyphs-app).
 
 ## License
 
