@@ -499,7 +499,40 @@
 
     .thank-you p {
       color: var(--slate);
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .copy-link-box {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #fff;
+      border: 1px solid var(--clay);
+      border-radius: 8px;
+      padding: 0.5rem 0.5rem 0.5rem 1rem;
+      margin: 0 auto 0.75rem;
+      max-width: 420px;
+    }
+
+    .copy-link-url {
+      flex: 1;
+      font-size: 0.8rem;
+      color: var(--charcoal);
+      word-break: break-all;
+      text-align: left;
+      background: none;
+      padding: 0;
+    }
+
+    .copy-link-btn {
+      flex-shrink: 0;
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+    }
+
+    .copy-hint {
+      font-size: 0.8rem;
+      color: var(--slate);
     }
 
     /* ── Roadmap ── */
@@ -609,7 +642,7 @@
       <div class="hero-text">
         <div class="hero-badge">
           <img src="/assets/petroglyphs-icon.png" class="hero-logo" alt="Petroglyphs">
-          <span class="eyebrow">iPad + Apple Pencil · Open Beta</span>
+          <span class="eyebrow">iPad + Apple Pencil + Claude · Open Beta</span>
         </div>
         <h1>Petroglyphs</h1>
         <p class="tagline">Close the gap between your pencil and AI.</p>
@@ -669,7 +702,7 @@
           </li>
           <li>
             <div class="step-text">
-              <h4>Open your LLM client on computer, add the MCP server</h4>
+              <h4>Open your Claude Desktop on computer, add the MCP server</h4>
               <p>In Claude Desktop: <strong>Settings → Connectors → Add custom connector → Add</strong></p>
               <p style="margin-top: 0.5rem;">Name: <code>Petroglyphs</code><br>Remote MCP server URL: <code>https://web-production-d8b49.up.railway.app/mcp</code></p>
               <!-- Replace src with actual screenshot when ready -->
@@ -774,8 +807,12 @@
 
         <div class="thank-you" id="thank-you">
           <h3>You're in!</h3>
-          <p>Thanks for signing up. Here's your TestFlight link:</p>
-          <a href="https://testflight.apple.com/join/putm8fdP" class="btn" id="testflight-link" target="_blank" rel="noopener">Download on iPad</a>
+          <p>Open this link on your iPad to install the app:</p>
+          <div class="copy-link-box">
+            <code class="copy-link-url" id="testflight-url">https://testflight.apple.com/join/putm8fdP</code>
+            <button class="btn copy-link-btn" id="copy-btn" type="button">Copy</button>
+          </div>
+          <p class="copy-hint">Paste this link in Safari on your iPad</p>
         </div>
       </div>
     </div>
@@ -826,6 +863,18 @@
       if (ctaBtn) {
         ctaBtn.addEventListener('click', function () {
           ping('interested');
+        });
+      }
+
+      // Copy TestFlight link
+      var copyBtn = document.getElementById('copy-btn');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', function () {
+          var url = document.getElementById('testflight-url').textContent;
+          navigator.clipboard.writeText(url).then(function () {
+            copyBtn.textContent = 'Copied!';
+            setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+          });
         });
       }
 
